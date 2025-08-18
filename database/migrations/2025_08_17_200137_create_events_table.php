@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name', 150);
             $table->text('description')->nullable();
+            $table->string('location', 150)->nullable();
             $table->timestampTz('starts_at')->index();
             $table->timestampTz('ends_at')->nullable()->index();
             $table->boolean('is_active')->default(true)->index();

@@ -24,30 +24,39 @@ class EventResource extends Resource
     {
         return $form->schema([
             // Create and Update Section
-            Forms\Components\Section::make('Event Info')
+            Forms\Components\Section::make('Informasi Tentang Event')
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('name')
-                        ->label('Event name')
+                        ->label('Nama Event')
+                        ->helperText('Masukkan nama event')
                         ->required()
                         ->maxLength(150),
 
                     Forms\Components\TextInput::make('description')
-                        ->label('Description')
+                        ->label('Deskripsi')
+                        ->helperText('Jelaskan tentang event nya, beritahu juga jenis tenant yang tersedia')
                         ->maxLength(200),
 
+                    Forms\Components\TextInput::make('location')
+                        ->label('Lokasi')
+                        ->helperText('Masukkan lokasi event yang akan diadakan')
+                        ->required()
+                        ->maxLength(150),
+
                     Forms\Components\DateTimePicker::make('starts_at')
-                        ->label('Starts at')
+                        ->label('Tanggal Mulai')
                         ->required()
                         ->seconds(false),
 
                     Forms\Components\DateTimePicker::make('ends_at')
-                        ->label('Ends at')
+                        ->label('Tanggal Selesai')
                         ->after('starts_at')
                         ->seconds(false),
 
                     Forms\Components\Toggle::make('is_active')
-                        ->label('Active')
+                        ->label('Tampilkan Event')
+                        ->helperText('Tandai jika event ini aktif dan akan ditampilkan di halaman utama')
                         ->default(true)
                         ->inline(false),
                 ]),
@@ -61,39 +70,50 @@ class EventResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Event')
                     ->searchable()
+                    ->alignCenter()
                     ->sortable(),
+                    
+                // Tables\Columns\TextColumn::make('description')
+                //     ->toggleable()
+                //     ->limit(30),
 
-                Tables\Columns\TextColumn::make('description')
-                    ->toggleable()
-                    ->limit(30),
+                Tables\Columns\TextColumn::make('location')
+                    ->label('Lokasi')
+                    ->alignCenter()
+                    ->sortable(),
 
                 Tables\Columns\IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label('Dapat Dipesan')
                     ->boolean()
+                    ->alignCenter()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('starts_at')
-                    ->dateTime('d M Y, H:i')
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('starts_at')
+                //     ->dateTime('d M Y, H:i')
+                //     ->sortable(),
 
-                Tables\Columns\TextColumn::make('ends_at')
-                    ->dateTime('d M Y, H:i')
-                    ->sortable()
-                    ->toggleable(),
+                // Tables\Columns\TextColumn::make('ends_at')
+                //     ->dateTime('d M Y, H:i')
+                //     ->sortable()
+                //     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('zones_count')  // plural
-                    ->label('Zones')
+                    ->label('Jumlah Zona')
                     ->counts('zones')    // plural juga
                     ->badge()
+                    ->alignCenter()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('booths_count')  // plural
-                    ->label('Booths')
+                    ->label('Jumlah Booth')
                     ->counts('booths')    // plural juga
                     ->badge()
+                    ->alignCenter()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Dibuat Pada')
+                    ->alignCenter()
                     ->since()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
