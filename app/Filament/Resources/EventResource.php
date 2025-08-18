@@ -12,6 +12,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class EventResource extends Resource
 {
@@ -43,6 +44,42 @@ class EventResource extends Resource
                         ->helperText('Masukkan lokasi event yang akan diadakan')
                         ->required()
                         ->maxLength(150),
+                    
+                    Forms\Components\Toggle::make('is_active')
+                        ->label('Tampilkan Event')
+                        ->helperText('Tandai jika event ini aktif dan akan ditampilkan di halaman utama')
+                        ->default(true)
+                        ->inline(false),
+                    
+                    Forms\Components\FileUpload::make('flyer_path')
+                        ->label('Upload Pamflet Event')
+                        ->acceptedFileTypes(['image/jpeg','image/png', 'image/jpg'])
+                        ->image()
+                        ->imageEditor() // optional crop/rotate
+                        ->disk('s3')
+                        ->maxSize(2 * 1024 * 1024) // 2MB
+                        ->directory('events/flyers')
+                        ->visibility('public')      // penting: file publik
+                        ->preserveFilenames(false)  // pakai hash biar unik
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                            return 'flyer_' . now()->format('Ymd_His') . '_' . str()->random(8) . '.' . $file->getClientOriginalExtension();
+                        })
+                        ->helperText('Gunakan rasio 16:9 atau 4:3, max ukuran 2MB, format .jpg atau .png.'),
+
+                    Forms\Components\FileUpload::make('venue_map_path')
+                        ->label('Upload Denah Booth')
+                        ->acceptedFileTypes(['image/jpeg','image/png', 'image/jpg'])
+                        ->image()
+                        ->imageEditor() // optional crop/rotate
+                        ->disk('s3')
+                        ->maxSize(5 * 1024 * 1024) // 5MB
+                        ->directory('events/venue-maps')
+                        ->visibility('public')
+                        ->preserveFilenames(false)
+                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
+                            return 'map_' . now()->format('Ymd_His') . '_' . str()->random(8) . '.' . $file->getClientOriginalExtension();
+                        })
+                        ->helperText('Gunakan rasio 4:3 atau 1:1, max ukuran 5MB, format .jpg atau .png.'),
 
                     Forms\Components\DateTimePicker::make('starts_at')
                         ->label('Tanggal Mulai')
@@ -54,11 +91,6 @@ class EventResource extends Resource
                         ->after('starts_at')
                         ->seconds(false),
 
-                    Forms\Components\Toggle::make('is_active')
-                        ->label('Tampilkan Event')
-                        ->helperText('Tandai jika event ini aktif dan akan ditampilkan di halaman utama')
-                        ->default(true)
-                        ->inline(false),
                 ]),
             ]);
     }
@@ -116,6 +148,21 @@ class EventResource extends Resource
                     ->alignCenter()
                     ->since()
                     ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('flyer_path')
+                    ->label('Pamflet')
+                    ->formatStateUsing(fn ($state) => $state ? Storage::disk('s3')->url($state) : '-')
+                    ->limit(40)
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('venue_map_path')
+                    ->label('Denah Booth')
+                    ->formatStateUsing(fn ($state) => $state ? Storage::disk('s3')->url($state) : '-')
+                    ->limit(40)
+                    ->copyable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
             ])
             ->filters([
                 Tables\Filters\TernaryFilter::make('is_active')

@@ -119,28 +119,81 @@ class OrderResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    // Tables\Actions\DeleteBulkAction::make(),
+                    // Tables\Actions\DeleteBulkAction::make()
+                    //   ->label('Hapus Pesanan Terpilih')
+                    //   ->requiresConfirmation(),
 
                     Tables\Actions\BulkAction::make('markPaid')
                         ->label('Tandai Lunas')
                         ->color('success')
-                        ->visible(fn (Order $r) => $r->status !== Order::STATUS_PAID)
+                        ->icon('heroicon-o-check')
+                        ->deselectRecordsAfterCompletion()
                         ->requiresConfirmation()
-                        ->action(fn (Order $r) => $r->update(['status' => Order::STATUS_PAID])),
+                        ->action(function ($records) {
+                            DB::transaction(function () use ($records) {
+                                $count = 0;
+                                foreach ($records as $order) {
+                                    /** @var Order $order */
+                                    if ($order->status !== Order::STATUS_PAID) {
+                                        $order->update(['status' => Order::STATUS_PAID]);
+                                        $count++;
+                                    }
+                                }
+                                Notification::make()
+                                    ->title('Pesanan Diperbarui')
+                                    ->body("{$count} pesanan ditandai sebagai LUNAS.")
+                                    ->success()
+                                    ->send();
+                            });
+                        }),
 
                     Tables\Actions\BulkAction::make('markPending')
-                        ->label('Tandai Pending')
+                        ->label('Tandai Menunggu')
                         ->color('warning')
-                        ->visible(fn (Order $r) => $r->status !== Order::STATUS_PENDING)
+                        ->icon('heroicon-o-clock')
                         ->requiresConfirmation()
-                        ->action(fn (Order $r) => $r->update(['status' => Order::STATUS_PENDING])),
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function ($records) {
+                            DB::transaction(function () use ($records) {
+                                $count = 0;
+                                foreach ($records as $order) {
+                                    /** @var Order $order */
+                                    if ($order->status !== Order::STATUS_PENDING) {
+                                        $order->update(['status' => Order::STATUS_PENDING]);
+                                        $count++;
+                                    }
+                                }
+                                Notification::make()
+                                    ->title('Pesanan Ditandai')
+                                    ->body("{$count} order ditandai sebagai MENUNGGU.")
+                                    ->success()
+                                    ->send();
+                            });
+                        }),
 
                     Tables\Actions\BulkAction::make('cancelOrder')
-                        ->label('Cancel')
+                        ->label('Tandai Dibatalkan')
                         ->color('danger')
+                        ->icon('heroicon-o-x-mark')
                         ->requiresConfirmation()
-                        ->visible(fn (Order $r) => $r->status !== Order::STATUS_CANCELLED)
-                        ->action(fn (Order $r) => $r->update(['status' => Order::STATUS_CANCELLED])),
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function ($records) {
+                            DB::transaction(function () use ($records) {
+                                $count = 0;
+                                foreach ($records as $order) {
+                                    /** @var Order $order */
+                                    if ($order->status !== Order::STATUS_CANCELLED) {
+                                        $order->update(['status' => Order::STATUS_CANCELLED]);
+                                        $count++;
+                                    }
+                                }
+                                Notification::make()
+                                    ->title('Pesanan Dibatalkan')
+                                    ->body("{$count} order ditandai sebagai DIBATALKAN.")
+                                    ->success()
+                                    ->send();
+                            });
+                        }),
                 ]),
             ]);
     }
@@ -156,7 +209,7 @@ class OrderResource extends Resource
     {
         return [
             'index' => Pages\ListOrders::route('/'),
-            'create' => Pages\CreateOrder::route('/create'),
+            // 'create' => Pages\CreateOrder::route('/create'),
             'view' => Pages\ViewOrder::route('/{record}'),
             'edit' => Pages\EditOrder::route('/{record}/edit'),
         ];
