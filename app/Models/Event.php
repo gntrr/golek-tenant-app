@@ -18,9 +18,20 @@ class Event extends Model
         'is_active' => 'boolean',
     ];
 
-    public function zones(): HasMany { return $this->hasMany(Zone::class); }
-    public function booths(): HasMany { return $this->hasMany(Booth::class); }
-    public function orders(): HasMany { return $this->hasMany(Order::class); }
+    public function zones(): HasMany
+    {
+        return $this->hasMany(Zone::class, 'event_id'); // singular di sini
+    }
+
+    public function booths(): HasMany
+    {
+        return $this->hasMany(Booth::class, 'event_id'); // singular di sini
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
 
     /* Scopes */
     public function scopeActive($q) { return $q->where('is_active', true); }

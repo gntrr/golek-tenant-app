@@ -19,7 +19,6 @@ class EventResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationLabel = 'Kelola Event';
-    protected static ?string $pluralLabel = 'Kelola Event';
 
     public static function form(Form $form): Form
     {
@@ -33,8 +32,8 @@ class EventResource extends Resource
                         ->required()
                         ->maxLength(150),
 
-                    Forms\Components\TextInput::make('location')
-                        ->label('Location')
+                    Forms\Components\TextInput::make('description')
+                        ->label('Description')
                         ->maxLength(200),
 
                     Forms\Components\DateTimePicker::make('starts_at')
@@ -58,14 +57,13 @@ class EventResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $q) => $q->withCount(['zones', 'booths']))
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->label('Event')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('location')
+                Tables\Columns\TextColumn::make('description')
                     ->toggleable()
                     ->limit(30),
 
@@ -83,13 +81,15 @@ class EventResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('zones_count')
+                Tables\Columns\TextColumn::make('zones_count')  // plural
                     ->label('Zones')
+                    ->counts('zones')    // plural juga
                     ->badge()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('booths_count')
+                Tables\Columns\TextColumn::make('booths_count')  // plural
                     ->label('Booths')
+                    ->counts('booths')    // plural juga
                     ->badge()
                     ->sortable(),
 
