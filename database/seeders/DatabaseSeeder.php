@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Database\Seeders\DemoEventSeeder;
+use Database\Seeders\DemoOrderSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -20,5 +22,11 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'admin@example.com',
         //     'password' => bcrypt('password'),
         // ]);
+
+        // Create demo events
+        $this->call(DemoEventSeeder::class);
+
+        // Create demo orders
+        $this->call(DemoOrderSeeder::class);
     }
 }

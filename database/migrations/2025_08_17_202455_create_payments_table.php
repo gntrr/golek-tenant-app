@@ -18,7 +18,6 @@ return new class extends Migration
             $table->string('provider', 16)->default('MIDTRANS'); // CHECK below
             $table->unsignedBigInteger('amount')->default(0);
             $table->string('status', 20)->default('INITIATED');  // CHECK below
-            $table->timestamps();
 
             // Midtrans fields
             $table->string('midtrans_txn_id', 64)->nullable()->index();
