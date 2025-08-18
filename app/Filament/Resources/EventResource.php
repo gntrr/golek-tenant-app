@@ -35,7 +35,7 @@ class EventResource extends Resource
 
                     Forms\Components\TextInput::make('description')
                         ->label('Deskripsi')
-                        ->helperText('Jelaskan tentang event nya, beritahu juga jenis tenant yang tersedia')
+                        ->helperText('Jelaskan tentang event nya, beritahu juga jenis booth yang tersedia')
                         ->maxLength(200),
 
                     Forms\Components\TextInput::make('location')
@@ -140,15 +140,27 @@ class EventResource extends Resource
                     }),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat'),
+                Tables\Actions\EditAction::make()
+                    ->label('Ubah'),
                 Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
                     ->requiresConfirmation(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make()
+                        ->label('Hapus Event Terpilih')
                         ->requiresConfirmation(),
+                    Tables\Actions\BulkAction::make('setActive')
+                        ->label('Tampilkan Event ke Publik')
+                        ->icon('heroicon-o-check')
+                        ->action(fn ($records) => $records->each->update(['is_active' => true])),
+                    Tables\Actions\BulkAction::make('setInactive')
+                        ->label('Nonaktifkan Event')
+                        ->icon('heroicon-o-x-mark')
+                        ->action(fn ($records) => $records->each->update(['is_active' => false])),
                 ]),
             ]);
     }

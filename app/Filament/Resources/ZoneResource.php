@@ -17,7 +17,7 @@ class ZoneResource extends Resource
 {
     protected static ?string $model = Zone::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
+    protected static ?string $navigationIcon = 'heroicon-o-map';
     protected static ?string $navigationLabel = 'Kelola Zona';
 
     public static function form(Form $form): Form
@@ -30,6 +30,7 @@ class ZoneResource extends Resource
                     Forms\Components\Select::make('event_id')
                         ->relationship('event', 'name')
                         ->label('Pilih Event')
+                        ->helperText('Pilih event yang akan memiliki zona ini')
                         ->searchable()
                         ->preload()
                         ->required(),
@@ -103,12 +104,19 @@ class ZoneResource extends Resource
                     ->preload(),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make()
+                    ->label('Lihat'),
+                Tables\Actions\EditAction::make()
+                    ->label('Ubah'),
+                Tables\Actions\DeleteAction::make()
+                    ->label('Hapus')
+                    ->requiresConfirmation(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->label('Hapus Zona Terpilih')
+                        ->requiresConfirmation(),
                 ]),
             ]);
     }

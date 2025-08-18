@@ -22,7 +22,7 @@ class DemoEventSeeder extends Seeder
         */
         $event1 = Event::create([
             'name' => 'Festival Kuliner Madiun 2025',
-            'description' => 'Festival kuliner terbesar di Madiun. Tersedia tenant jenis VIP dan Festival.',
+            'description' => 'Festival kuliner terbesar di Madiun. Tersedia booth jenis VIP dan Festival.',
             'location' => 'GOR Wilis Madiun',
             'starts_at' => now()->addWeeks(2),
             'ends_at' => now()->addWeeks(3),
@@ -74,7 +74,7 @@ class DemoEventSeeder extends Seeder
         */
         $event2 = Event::create([
             'name' => 'Madiun Music Concert 2025',
-            'description' => 'Konser musik terbesar di Madiun. Menampilkan berbagai artis lokal dan nasional. Tersedia tenant jenis Gold dan Silver.',
+            'description' => 'Konser musik terbesar di Madiun. Menampilkan berbagai artis lokal dan nasional. Tersedia booth jenis Gold dan Silver.',
             'location' => 'Alun-Alun Kota Madiun',
             'starts_at' => now()->addMonths(1),
             'ends_at' => now()->addMonths(1)->addDays(2),
