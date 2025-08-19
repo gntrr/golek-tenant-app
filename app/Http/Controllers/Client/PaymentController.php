@@ -24,16 +24,25 @@ class PaymentController extends Controller
             return redirect()->route('client.payment.status', $order);
         }
 
-        $midtransEnabled = (bool) Setting::get('payments', 'midtrans_enabled', true);
+        // Dukung kunci lama "midtrans_enable" selain "midtrans_enabled"
+        $midtransEnabled = (bool) (
+            Setting::get('payments', 'midtrans_enabled', null)
+            ?? Setting::get('payments', 'midtrans_enable', true)
+        );
         $bankTransferEnabled = (bool) Setting::get('payments', 'bank_transfer_enabled', true);
-        $fallbackBanner = Setting::get('payments', 'fallback_banner', null);
+        // Tampilkan fallback banner hanya jika Midtrans dimatikan
+        $fallbackBanner = $midtransEnabled ? null : Setting::get('payments', 'fallback_banner', null);
 
         return view('client.payments.select', compact('order', 'midtransEnabled', 'bankTransferEnabled', 'fallbackBanner'));
     }
 
     public function processMidtrans(Request $request, Order $order)
     {
-        $midtransEnabled = (bool) Setting::get('payments', 'midtrans_enabled', true);
+        // Dukung kunci lama "midtrans_enable" selain "midtrans_enabled"
+        $midtransEnabled = (bool) (
+            Setting::get('payments', 'midtrans_enabled', null)
+            ?? Setting::get('payments', 'midtrans_enable', true)
+        );
         if (!$midtransEnabled) {
             return redirect()->route('client.payment.upload.form', $order)
                 ->with('warning', 'Midtrans sedang tidak tersedia. Silakan gunakan Upload Bukti Transfer.');
@@ -112,7 +121,12 @@ class PaymentController extends Controller
     public function uploadForm(Order $order)
     {
         $order->load('event');
-        $fallbackBanner = Setting::get('payments', 'fallback_banner', null);
+        // Tampilkan fallback banner hanya jika Midtrans dimatikan
+        $midtransEnabled = (bool) (
+            Setting::get('payments', 'midtrans_enabled', null)
+            ?? Setting::get('payments', 'midtrans_enable', true)
+        );
+        $fallbackBanner = $midtransEnabled ? null : Setting::get('payments', 'fallback_banner', null);
         $instructions = Setting::get('payments', 'bank_transfer_instructions', null);
         return view('client.payments.upload', compact('order', 'fallbackBanner', 'instructions'));
     }

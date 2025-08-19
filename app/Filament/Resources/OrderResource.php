@@ -8,6 +8,8 @@ use App\Filament\Resources\OrderResource\RelationManagers\OrderItemsRelationMana
 use App\Filament\Resources\OrderResource\RelationManagers\PaymentsRelationManager;
 use App\Filament\Resources\OrderResource\RelationManagers\PaymentProofsRelationManager;
 use App\Models\Order;
+use App\Models\Payment;
+use App\Models\PaymentProof;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -138,6 +140,29 @@ class OrderResource extends Resource
                                     /** @var Order $order */
                                     if ($order->status !== Order::STATUS_PAID) {
                                         $order->update(['status' => Order::STATUS_PAID]);
+
+                                        // Pastikan ada Payment untuk order ini (berdasarkan metode pembayaran bila ada)
+                                        $provider = $order->payment_method === Order::METHOD_BANK
+                                            ? Payment::PROVIDER_BANK
+                                            : Payment::PROVIDER_MIDTRANS;
+                                        Payment::firstOrCreate(
+                                            ['order_id' => $order->id, 'provider' => $provider],
+                                            ['amount' => $order->total_amount, 'status' => Payment::STATUS_PENDING]
+                                        );
+
+                                        // Tandai semua payment order ini sebagai SETTLEMENT dan beri paid_at
+                                        Payment::where('order_id', $order->id)
+                                            ->update(['status' => Payment::STATUS_SETTLEMENT, 'paid_at' => now()]);
+
+                                        // Jika via transfer bank, setujui semua bukti pembayaran
+                                        if ($order->payment_method === Order::METHOD_BANK) {
+                                            PaymentProof::where('order_id', $order->id)
+                                                ->update([
+                                                    'status' => PaymentProof::STATUS_APPROVED,
+                                                    'reviewed_by' => auth()->id(),
+                                                    'reviewed_at' => now(),
+                                                ]);
+                                        }
                                         $count++;
                                     }
                                 }
@@ -162,6 +187,20 @@ class OrderResource extends Resource
                                     /** @var Order $order */
                                     if ($order->status !== Order::STATUS_PENDING) {
                                         $order->update(['status' => Order::STATUS_PENDING]);
+
+                                        // Tandai semua payment menjadi PENDING dan hapus paid_at
+                                        Payment::where('order_id', $order->id)
+                                            ->update(['status' => Payment::STATUS_PENDING, 'paid_at' => null]);
+
+                                        // Jika via transfer bank, kembalikan bukti jadi PENDING dan hapus review
+                                        if ($order->payment_method === Order::METHOD_BANK) {
+                                            PaymentProof::where('order_id', $order->id)
+                                                ->update([
+                                                    'status' => PaymentProof::STATUS_PENDING,
+                                                    'reviewed_by' => null,
+                                                    'reviewed_at' => null,
+                                                ]);
+                                        }
                                         $count++;
                                     }
                                 }
@@ -186,6 +225,20 @@ class OrderResource extends Resource
                                     /** @var Order $order */
                                     if ($order->status !== Order::STATUS_CANCELLED) {
                                         $order->update(['status' => Order::STATUS_CANCELLED]);
+
+                                        // Tandai semua payment menjadi CANCEL dan hapus paid_at
+                                        Payment::where('order_id', $order->id)
+                                            ->update(['status' => Payment::STATUS_CANCEL, 'paid_at' => null]);
+
+                                        // Jika via transfer bank, tolak semua bukti pembayaran
+                                        if ($order->payment_method === Order::METHOD_BANK) {
+                                            PaymentProof::where('order_id', $order->id)
+                                                ->update([
+                                                    'status' => PaymentProof::STATUS_REJECTED,
+                                                    'reviewed_by' => auth()->id(),
+                                                    'reviewed_at' => now(),
+                                                ]);
+                                        }
                                         $count++;
                                     }
                                 }
