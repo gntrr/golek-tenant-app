@@ -19,7 +19,7 @@ class SettingSeeder extends Seeder
             // === Toggle Midtrans ===
             [
                 'group'     => 'payments',
-                'key'        => 'payments.midtrans_enabled',
+                'key'        => 'midtrans_enabled',
                 'value'      => '1', // "1" = ON, "0" = OFF
                 'type'       => 'bool',
                 'created_at' => $now,
@@ -29,7 +29,7 @@ class SettingSeeder extends Seeder
             // === Toggle Bank Transfer ===
             [
                 'group'     => 'payments',
-                'key'        => 'payments.bank_transfer_enabled',
+                'key'        => 'bank_transfer_enabled',
                 'value'      => '1',
                 'type'       => 'bool',
                 'created_at' => $now,
@@ -39,7 +39,7 @@ class SettingSeeder extends Seeder
             // === Pesan banner untuk fallback ke transfer manual ===
             [
                 'group'     => 'payments',
-                'key'        => 'payments.fallback_banner',
+                'key'        => 'fallback_banner',
                 'value'      => '⚠️ Pembayaran via Midtrans sementara nonaktif. Silakan gunakan transfer manual & upload bukti pembayaran.',
                 'type'       => 'text',
                 'created_at' => $now,
@@ -49,7 +49,7 @@ class SettingSeeder extends Seeder
             // === Instruksi transfer (multi-baris) ===
             [
                 'group'      => 'payments',
-                'key'        => 'payments.bank_instructions',
+                'key'        => 'bank_transfer_instructions',
                 'value'      => <<<TEXT
                                     Silakan transfer ke salah satu rekening berikut:
 
