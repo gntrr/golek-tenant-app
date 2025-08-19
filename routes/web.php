@@ -38,6 +38,8 @@ Route::prefix('book')->name('client.book.')->group(function () {
 Route::prefix('payment')->name('client.payment.')->group(function () {
     Route::get('/select/{order}', [PaymentController::class, 'selectMethod'])->name('select');
     Route::post('/midtrans/{order}', [PaymentController::class, 'processMidtrans'])->name('midtrans');
+    // Return handler dari Midtrans Snap (Finish/Unfinish/Error)
+    Route::get('/midtrans/return', [PaymentController::class, 'midtransReturn'])->name('midtrans.return');
     Route::get('/upload/{order}', [PaymentController::class, 'uploadForm'])->name('upload.form');
     Route::post('/upload/{order}', [PaymentController::class, 'uploadProof'])->name('upload.store');
     Route::get('/status/{order}', [PaymentController::class, 'status'])->name('status');

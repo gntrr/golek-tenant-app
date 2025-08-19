@@ -75,6 +75,10 @@ class PaymentController extends Controller
                         'name' => optional($item->booth)->code ?? 'Booth',
                     ];
                 })->values()->all(),
+                // Pastikan pelanggan kembali ke halaman status setelah keluar dari Snap
+                'callbacks' => [
+                    'finish' => route('client.payment.midtrans.return'),
+                ],
             ];
 
             $snap = MidtransSnap::createTransaction($params);
@@ -124,7 +128,7 @@ class PaymentController extends Controller
         // Create or update payment record
         $payment = Payment::firstOrCreate([
             'order_id' => $order->id,
-            'provider' => Payment::PROVIDER_BANK_TRANSFER,
+            'provider' => Payment::PROVIDER_BANK,
         ], [
             'amount' => $order->total_amount,
             'status' => Payment::STATUS_PENDING,
@@ -137,7 +141,7 @@ class PaymentController extends Controller
             'status' => PaymentProof::STATUS_PENDING,
         ]);
 
-        $order->payment_method = Order::METHOD_BANK_TRANSFER;
+        $order->payment_method = Order::METHOD_BANK;
         $order->status = Order::STATUS_AWAITING;
         $order->save();
 
@@ -278,5 +282,38 @@ class PaymentController extends Controller
         }
 
         return response()->json(['message' => 'ok']);
+    }
+
+    /*
+     * Universal return handler for Midtrans Snap redirect (Finish/Unfinish/Error)
+     * We rely on webhook for the actual payment status update. This endpoint
+     * simply guides user back to our order status page based on order_id query.
+     */
+    public function midtransReturn(Request $request)
+    {
+        $invoice = $request->query('order_id');
+        $status  = $request->query('transaction_status');
+        $action  = $request->query('action'); // e.g., back
+
+        if (!$invoice) {
+            return redirect()->route('home')->with('warning', 'Tidak ada informasi pesanan.');
+        }
+
+        $order = Order::where('invoice_number', $invoice)->first();
+        if (!$order) {
+            return redirect()->route('home')->with('warning', 'Pesanan tidak ditemukan.');
+        }
+
+        // Berikan pesan informatif bila user belum menyelesaikan pembayaran di Snap
+        $message = null;
+        if ($action === 'back' || $status === 'pending') {
+            $message = 'Pembayaran belum selesai di Midtrans. Silakan lanjutkan pembayaran atau pilih metode lain.';
+        } elseif ($status === 'deny' || $status === 'expire' || $status === 'cancel') {
+            $message = 'Transaksi tidak berhasil atau kedaluwarsa. Anda dapat mencoba lagi.';
+        }
+
+        return $message
+            ? redirect()->route('client.payment.status', $order)->with('info', $message)
+            : redirect()->route('client.payment.status', $order);
     }
 }

@@ -55,7 +55,7 @@ class OrderController extends Controller
             $order->company_name = $request->company_name;
             $order->invoice_number = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
             $order->total_amount = $booth->base_price; // can be adjusted with zone multipliers
-            $order->payment_method = null;
+            $order->payment_method = 'MIDTRANS';
             $order->status = 'AWAITING_PAYMENT';
             $order->expires_at = now()->addMinutes(10);
             $order->save();
