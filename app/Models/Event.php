@@ -10,7 +10,7 @@ class Event extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'description', 'location', 'starts_at', 'ends_at', 'is_active'];
+    protected $fillable = ['name', 'description', 'location', 'starts_at', 'ends_at', 'is_active', 'flyer_path', 'venue_map_path'];
 
     protected $casts = [
         'starts_at' => 'datetime',

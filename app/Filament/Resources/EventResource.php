@@ -8,6 +8,8 @@ use App\Models\Event;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -53,16 +55,25 @@ class EventResource extends Resource
                     
                     Forms\Components\FileUpload::make('flyer_path')
                         ->label('Upload Pamflet Event')
-                        ->acceptedFileTypes(['image/jpeg','image/png', 'image/jpg'])
                         ->image()
+                        ->acceptedFileTypes(['image/jpeg','image/png', 'image/jpg'])
                         ->imageEditor() // optional crop/rotate
-                        ->disk('s3')
+                        // ->disk('s3')
                         ->maxSize(2 * 1024 * 1024) // 2MB
-                        ->directory('events/flyers')
-                        ->visibility('public')      // penting: file publik
-                        ->preserveFilenames(false)  // pakai hash biar unik
-                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                            return 'flyer_' . now()->format('Ymd_His') . '_' . str()->random(8) . '.' . $file->getClientOriginalExtension();
+                        // ->directory('events/flyers')
+                        // ->visibility('public')      // penting: file publik
+                        // ->preserveFilenames(false)  // pakai hash biar unik
+                        ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                            $name = 'flyer_' . now()->format('Ymd_His') . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+                            $path = "events/flyers/{$name}";
+
+                            // Upload manual dari file temp → S3
+                            Storage::disk('s3')->put($path, file_get_contents($file->getRealPath()));
+
+                            return $path; // <-- disimpan ke kolom flyer_path
+                        })
+                        ->deleteUploadedFileUsing(function (?string $path) {
+                            if ($path) Storage::disk('s3')->delete($path);
                         })
                         ->helperText('Gunakan rasio 16:9 atau 4:3, max ukuran 2MB, format .jpg atau .png.'),
 
@@ -71,13 +82,21 @@ class EventResource extends Resource
                         ->acceptedFileTypes(['image/jpeg','image/png', 'image/jpg'])
                         ->image()
                         ->imageEditor() // optional crop/rotate
-                        ->disk('s3')
+                        // ->disk('s3')
                         ->maxSize(5 * 1024 * 1024) // 5MB
-                        ->directory('events/venue-maps')
-                        ->visibility('public')
-                        ->preserveFilenames(false)
-                        ->getUploadedFileNameForStorageUsing(function (TemporaryUploadedFile $file): string {
-                            return 'map_' . now()->format('Ymd_His') . '_' . str()->random(8) . '.' . $file->getClientOriginalExtension();
+                        // ->directory('events/venue-maps')
+                        // ->visibility('public')
+                        // ->preserveFilenames(false)
+                        ->saveUploadedFileUsing(function (TemporaryUploadedFile $file) {
+                            $name = 'map_' . now()->format('Ymd_His') . '_' . Str::random(8) . '.' . $file->getClientOriginalExtension();
+                            $path = "events/venue-maps/{$name}";
+
+                            Storage::disk('s3')->put($path, file_get_contents($file->getRealPath()));
+
+                            return $path;
+                        })
+                        ->deleteUploadedFileUsing(function (?string $path) {
+                            if ($path) Storage::disk('s3')->delete($path);
                         })
                         ->helperText('Gunakan rasio 4:3 atau 1:1, max ukuran 5MB, format .jpg atau .png.'),
 
