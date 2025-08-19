@@ -54,7 +54,7 @@ class EventResource extends Resource
                         ->inline(false),
                     
                     Forms\Components\FileUpload::make('flyer_path')
-                        ->label('Upload Pamflet Event')
+                        ->label('Upload Flyer Event')
                         ->image()
                         ->acceptedFileTypes(['image/jpeg','image/png', 'image/jpg'])
                         ->imageEditor() // optional crop/rotate
@@ -169,7 +169,7 @@ class EventResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('flyer_path')
-                    ->label('Pamflet')
+                    ->label('Flyer')
                     // tampilkan teksnya sebagai URL pendek
                     ->formatStateUsing(fn ($state) => $state ? parse_url(Storage::disk('s3')->url($state), PHP_URL_PATH) : '-')
                     // link yang diklik -> buka public URL
@@ -220,7 +220,7 @@ class EventResource extends Resource
                 Tables\Actions\ViewAction::make()
                     ->label('Lihat'),
                 Tables\Actions\Action::make('openFlyer')
-                    ->label('Pamflet')
+                    ->label('Flyer')
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->url(fn ($record) => $record->flyer_path ? Storage::disk('s3')->url($record->flyer_path) : null)
                     ->openUrlInNewTab(),

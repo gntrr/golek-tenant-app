@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('events', function (Blueprint $table) {
             // Add public s3 assets url
-            $table->string('flyer_path', 400)->nullable()->after('location'); // pamflet/poster
+            $table->string('flyer_path', 400)->nullable()->after('location'); // flyer/poster
             $table->string('venue_map_path', 400)->nullable()->after('flyer_path'); // denah booth
         });
     }

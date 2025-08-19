@@ -21,12 +21,14 @@ class DemoEventSeeder extends Seeder
         ======================================================
         */
         $event1 = Event::create([
-            'name' => 'Festival Kuliner Madiun 2025',
-            'description' => 'Festival kuliner terbesar di Madiun. Tersedia booth jenis VIP dan Festival.',
+            'name' => 'Festival Rock Madiun 2025',
+            'description' => 'Festival Rock terbesar di Madiun. Tersedia booth jenis VIP dan Festival.',
             'location' => 'GOR Wilis Madiun',
             'starts_at' => now()->addWeeks(2),
             'ends_at' => now()->addWeeks(3),
             'is_active' => true,
+            'flyer_path' => 'events/flyers/flyer_20250819_064041_ARUmUjcD.png',
+            'venue_map_path' => 'events/venue-maps/map_20250819_064054_nVkoJLim.png'
         ]);
 
         $vipZone1 = Zone::create([
@@ -79,6 +81,8 @@ class DemoEventSeeder extends Seeder
             'starts_at' => now()->addMonths(1),
             'ends_at' => now()->addMonths(1)->addDays(2),
             'is_active' => true,
+            'flyer_path' => 'events/flyers/flyer_20250819_064041_ARUmUjcD.png',
+            'venue_map_path' => 'events/venue-maps/map_20250819_064054_nVkoJLim.png'
         ]);
 
         $goldZone = Zone::create([

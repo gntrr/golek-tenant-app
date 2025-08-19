@@ -12,13 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('settings', function (Blueprint $table) {
-            $table->id();
+            $table->string('key', 80);   // e.g. payments.midtrans_enabled
             $table->string('group', 50); // 'payment','smtp','general'
-            $table->string('key', 80);
-            $table->json('value');       // store bool/string/object as json
+            $table->text('value')->nullable();     // simpan "1"/"0" atau teks panjang
+            $table->enum('type', ['bool','text','json'])->default('text');
             $table->timestamps();
 
-            $table->unique(['group','key']);
+            $table->primary(['group','key']);
         });
     }
 

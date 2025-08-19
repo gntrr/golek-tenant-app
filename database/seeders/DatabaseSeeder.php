@@ -6,6 +6,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Database\Seeders\DemoEventSeeder;
 use Database\Seeders\DemoOrderSeeder;
+use Database\Seeders\SettingSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -28,5 +29,8 @@ class DatabaseSeeder extends Seeder
 
         // Create demo orders
         $this->call(DemoOrderSeeder::class);
+
+        // Create settings
+        $this->call(SettingSeeder::class);
     }
 }
