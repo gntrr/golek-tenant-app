@@ -149,14 +149,14 @@ class EventResource extends Resource
                 //     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('zones_count')  // plural
-                    ->label('Jumlah Zona')
+                    ->label('Total Zona')
                     ->counts('zones')    // plural juga
                     ->badge()
                     ->alignCenter()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('booths_count')  // plural
-                    ->label('Jumlah Booth')
+                    ->label('Total Booth')
                     ->counts('booths')    // plural juga
                     ->badge()
                     ->alignCenter()
@@ -170,16 +170,27 @@ class EventResource extends Resource
 
                 Tables\Columns\TextColumn::make('flyer_path')
                     ->label('Pamflet')
-                    ->formatStateUsing(fn ($state) => $state ? Storage::disk('s3')->url($state) : '-')
-                    ->limit(40)
+                    // tampilkan teksnya sebagai URL pendek
+                    ->formatStateUsing(fn ($state) => $state ? parse_url(Storage::disk('s3')->url($state), PHP_URL_PATH) : '-')
+                    // link yang diklik -> buka public URL
+                    ->url(fn ($record) => $record->flyer_path ? Storage::disk('s3')->url($record->flyer_path) : null)
+                    ->openUrlInNewTab()
+                    // yang di-COPY -> public URL (bukan path S3)
                     ->copyable()
+                    ->copyableState(fn ($record) => $record->flyer_path ? Storage::disk('s3')->url($record->flyer_path) : '')
+                    ->tooltip('Klik buat buka, ikon copy buat salin URL')
+                    ->limit(10)
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('venue_map_path')
                     ->label('Denah Booth')
-                    ->formatStateUsing(fn ($state) => $state ? Storage::disk('s3')->url($state) : '-')
-                    ->limit(40)
+                    ->formatStateUsing(fn ($state) => $state ? parse_url(Storage::disk('s3')->url($state), PHP_URL_PATH) : '-')
+                    ->url(fn ($record) => $record->venue_map_path ? Storage::disk('s3')->url($record->venue_map_path) : null)
+                    ->openUrlInNewTab()
                     ->copyable()
+                    ->copyableState(fn ($record) => $record->venue_map_path ? Storage::disk('s3')->url($record->venue_map_path) : '')
+                    ->tooltip('Klik buat buka, ikon copy buat salin URL')
+                    ->limit(10)
                     ->toggleable(isToggledHiddenByDefault: true),
 
             ])
@@ -208,6 +219,16 @@ class EventResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Lihat'),
+                Tables\Actions\Action::make('openFlyer')
+                    ->label('Pamflet')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->url(fn ($record) => $record->flyer_path ? Storage::disk('s3')->url($record->flyer_path) : null)
+                    ->openUrlInNewTab(),
+                Tables\Actions\Action::make('openVenueMap')
+                    ->label('Denah Booth')
+                    ->icon('heroicon-o-arrow-top-right-on-square')
+                    ->url(fn ($record) => $record->venue_map_path ? Storage::disk('s3')->url($record->venue_map_path) : null)
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make()
                     ->label('Ubah'),
                 Tables\Actions\DeleteAction::make()

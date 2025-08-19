@@ -13,6 +13,10 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule): void
     {
         // $schedule->command('inspire')->hourly();
+        
+        // Clean up temporary Livewire uploads daily
+        $schedule->call(fn () => \Illuminate\Support\Facades\File::cleanDirectory(storage_path('framework/livewire-tmp')))
+             ->daily();
     }
 
     /**
