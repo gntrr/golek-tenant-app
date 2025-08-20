@@ -19,6 +19,9 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ReceiptMail;
+use App\Models\EmailLog;
 
 class OrderResource extends Resource
 {
@@ -145,7 +148,8 @@ class OrderResource extends Resource
                         ->deselectRecordsAfterCompletion()
                         ->requiresConfirmation()
                         ->action(function ($records) {
-                            DB::transaction(function () use ($records) {
+                            $paidOrderIds = [];
+                            DB::transaction(function () use ($records, &$paidOrderIds) {
                                 $count = 0;
                                 foreach ($records as $order) {
                                     /** @var Order $order */
@@ -182,6 +186,9 @@ class OrderResource extends Resource
                                                 $item->booth->update(['status' => 'BOOKED', 'expires_at' => null]);
                                             }
                                         }
+
+                                        // Kumpulkan untuk kirim email setelah commit
+                                        $paidOrderIds[] = $order->id;
                                         $count++;
                                     }
                                 }
@@ -191,6 +198,29 @@ class OrderResource extends Resource
                                     ->success()
                                     ->send();
                             });
+
+                            // Kirim email receipt setelah transaksi DB selesai
+                            foreach ($paidOrderIds as $id) {
+                                $fresh = Order::with(['items.booth','event'])->find($id);
+                                if (!$fresh) continue;
+                                try {
+                                    Mail::to($fresh->email)->send(new ReceiptMail($fresh));
+                                    EmailLog::create([
+                                        'to_email' => $fresh->email,
+                                        'subject' => 'Receipt Pembayaran '.$fresh->invoice_number,
+                                        'template' => 'receipt',
+                                        'status' => 'SENT',
+                                    ]);
+                                } catch (\Throwable $e) {
+                                    EmailLog::create([
+                                        'to_email' => $fresh->email,
+                                        'subject' => 'Receipt Pembayaran '.$fresh->invoice_number,
+                                        'template' => 'receipt',
+                                        'status' => 'FAILED',
+                                        'error' => $e->getMessage(),
+                                    ]);
+                                }
+                            }
                         }),
 
                     Tables\Actions\BulkAction::make('markPending')

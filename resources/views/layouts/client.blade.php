@@ -7,7 +7,7 @@
     @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
 <body data-theme="pastel" class="min-h-screen flex flex-col">
-    <div class="navbar bg-base-100 shadow-sm">
+    <div class="navbar bg-base-300 shadow-sm sticky top-0 z-50">
         <div class="flex-1">
             <a href="{{ route('home') }}" class="btn btn-ghost normal-case text-xl">Golek Tenant</a>
         </div>
