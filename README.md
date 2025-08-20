@@ -140,6 +140,7 @@ Catatan Livewire upload:
 ## Akses Demo Admin
 
 Untuk mengakses demo sistem khususnya di halaman admin, silahkan lakukan login dengan kredensial berikut:
+- Url: https://golektenant.masgenterr.tech/admin/
 - Email: `admin@example.com`
 - Password: `password`
 
