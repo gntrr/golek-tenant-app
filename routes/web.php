@@ -41,6 +41,7 @@ Route::prefix('payment')->name('client.payment.')->group(function () {
     // Return handler dari Midtrans Snap (Finish/Unfinish/Error)
     Route::get('/midtrans/return', [PaymentController::class, 'midtransReturn'])->name('midtrans.return');
     Route::get('/upload/{order}', [PaymentController::class, 'uploadForm'])->name('upload.form');
+    Route::post('/upload/{order}/bank', [PaymentController::class, 'changeBankVA'])->name('upload.changeBank');
     Route::post('/upload/{order}', [PaymentController::class, 'uploadProof'])->name('upload.store');
     Route::get('/status/{order}', [PaymentController::class, 'status'])->name('status');
 });

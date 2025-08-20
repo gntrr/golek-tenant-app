@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\WebhookLog;
 use Midtrans\Config as MidtransConfig;
 use Midtrans\Snap as MidtransSnap;
+use Midtrans\Transaction as MidtransTransaction;
 
 class PaymentController extends Controller
 {
@@ -128,12 +129,34 @@ class PaymentController extends Controller
         );
         $fallbackBanner = $midtransEnabled ? null : Setting::get('payments', 'fallback_banner', null);
         $instructions = Setting::get('payments', 'bank_transfer_instructions', null);
-        return view('client.payments.upload', compact('order', 'fallbackBanner', 'instructions'));
+
+        // Siapkan VA number jika belum ada payment BANK_TRANSFER untuk order ini
+        $payment = Payment::firstOrCreate([
+            'order_id' => $order->id,
+            'provider' => Payment::PROVIDER_BANK,
+        ], [
+            'amount' => $order->total_amount,
+            'status' => Payment::STATUS_PENDING,
+        ]);
+
+        if (!$payment->va_number) {
+            // Generate VA sederhana (simulasi): BANK + tanggal + 6 digit acak
+            $bank = 'bca'; // bisa ditentukan dari pilihan user di form, default bca
+            $va   = '988'.date('md').str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $payment->va_number = $va;
+            $payment->bank = $bank;
+            $payment->save();
+        }
+
+        return view('client.payments.upload', compact('order', 'fallbackBanner', 'instructions', 'payment'));
     }
 
     public function uploadProof(Request $request, Order $order)
     {
+        // bank wajib jika belum ada VA; jika sudah ada, boleh tidak mengirim bank lagi
+        $hasVa = Payment::where('order_id', $order->id)->where('provider', Payment::PROVIDER_BANK)->whereNotNull('va_number')->exists();
         $request->validate([
+            'bank' => [$hasVa ? 'nullable' : 'required', 'in:bca,bni,bri,permata'],
             'proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
@@ -148,6 +171,22 @@ class PaymentController extends Controller
             'status' => Payment::STATUS_PENDING,
         ]);
 
+        // Regenerate VA if bank changed or VA empty
+        $selectedBank = $request->input('bank');
+    if ($selectedBank && (!$payment->va_number || $payment->bank !== $selectedBank)) {
+            $prefixMap = [
+                'bca' => '988',
+                'bni' => '609',
+                'bri' => '262',
+                'permata' => '825',
+            ];
+            $prefix = $prefixMap[$selectedBank] ?? '988';
+            $va = $prefix . date('md') . str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $payment->va_number = $va;
+            $payment->bank = $selectedBank;
+            $payment->save();
+        }
+
         // Save proof record
         PaymentProof::create([
             'order_id' => $order->id,
@@ -155,11 +194,41 @@ class PaymentController extends Controller
             'status' => PaymentProof::STATUS_PENDING,
         ]);
 
-        $order->payment_method = Order::METHOD_BANK;
+    $order->payment_method = Order::METHOD_BANK;
         $order->status = Order::STATUS_AWAITING;
         $order->save();
 
         return redirect()->route('client.payment.status', $order)->with('success', 'Bukti transfer berhasil diunggah. Menunggu verifikasi.');
+    }
+
+    public function changeBankVA(Request $request, Order $order)
+    {
+        $request->validate([
+            'bank' => ['required', 'in:bca,bni,bri,permata'],
+        ]);
+
+        $payment = Payment::firstOrCreate([
+            'order_id' => $order->id,
+            'provider' => Payment::PROVIDER_BANK,
+        ], [
+            'amount' => $order->total_amount,
+            'status' => Payment::STATUS_PENDING,
+        ]);
+
+        $selectedBank = $request->input('bank');
+        $prefixMap = [
+            'bca' => '988',
+            'bni' => '609',
+            'bri' => '262',
+            'permata' => '825',
+        ];
+        $prefix = $prefixMap[$selectedBank] ?? '988';
+        $va = $prefix . date('md') . str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $payment->va_number = $va;
+        $payment->bank = $selectedBank;
+        $payment->save();
+
+        return back()->with('success', 'Bank VA diperbarui.');
     }
 
     public function status(Order $order)
@@ -215,9 +284,12 @@ class PaymentController extends Controller
             $fraudStatus = $payload['fraud_status'] ?? null;
             $paymentType = $payload['payment_type'] ?? null;
 
-            // Catat transaction ID Midtrans jika ada
+            // Catat transaksi Midtrans saat ada (transaction_id atau transaksi id lain)
             if (!empty($payload['transaction_id'] ?? null)) {
-                $payment->midtrans_txn_id = $payload['transaction_id'];
+                $payment->midtrans_txn_id = (string) $payload['transaction_id'];
+            } elseif (!empty($payload['transaction_status'] ?? null) && !empty($payload['order_id'] ?? null)) {
+                // fallback: gunakan order_id + status sebagai jejak bila transaction_id tidak disertakan (jarang terjadi di sandbox)
+                $payment->midtrans_txn_id = (string) ($payload['order_id'].'|'.$payload['transaction_status']);
             }
 
             // Simpan info VA jika ada
@@ -316,6 +388,76 @@ class PaymentController extends Controller
         $order = Order::where('invoice_number', $invoice)->first();
         if (!$order) {
             return redirect()->route('home')->with('warning', 'Pesanan tidak ditemukan.');
+        }
+
+        // Upaya konfirmasi cepat (khusus pengujian/tunnel belum siap):
+        // Jika status dari Snap mengindikasikan sukses, coba verifikasi ke Midtrans
+        // dan update Order/Payment agar pengguna melihat status LUNAS tanpa menunggu webhook.
+        try {
+            if (in_array($status, ['settlement', 'capture'])) {
+                // Siapkan konfigurasi Midtrans
+                MidtransConfig::$serverKey    = config('services.midtrans.server_key');
+                MidtransConfig::$isProduction = (bool) config('services.midtrans.is_production', false);
+
+                $resp = MidtransTransaction::status($invoice);
+                // Normalisasi respons menjadi array sederhana
+                $respArr = is_array($resp) ? $resp : json_decode(json_encode($resp), true);
+                $txnStatus = $respArr['transaction_status'] ?? null;
+                $fraud     = $respArr['fraud_status'] ?? null;
+                $payType   = $respArr['payment_type'] ?? null;
+
+                if ($txnStatus === 'settlement' || ($txnStatus === 'capture' && $fraud !== 'challenge')) {
+                    // Sinkronkan seperti di webhook
+                    \DB::transaction(function () use ($order, $respArr, $payType) {
+                        $payment = Payment::firstOrCreate([
+                            'order_id' => $order->id,
+                            'provider' => Payment::PROVIDER_MIDTRANS,
+                        ], [
+                            'amount' => $order->total_amount,
+                            'status' => Payment::STATUS_PENDING,
+                        ]);
+
+                        if (!empty($respArr['transaction_id'] ?? null)) {
+                            $payment->midtrans_txn_id = (string) $respArr['transaction_id'];
+                        } elseif (!empty($respArr['status_code'] ?? null)) {
+                            $payment->midtrans_txn_id = (string) ($invoice.'|'.$respArr['status_code']);
+                        }
+
+                        if ($payType === 'bank_transfer') {
+                            if (!empty($respArr['va_numbers'][0]['va_number'] ?? null)) {
+                                $payment->va_number = $respArr['va_numbers'][0]['va_number'];
+                                $payment->bank = $respArr['va_numbers'][0]['bank'] ?? null;
+                            } elseif (!empty($respArr['permata_va_number'] ?? null)) {
+                                $payment->va_number = $respArr['permata_va_number'];
+                                $payment->bank = 'permata';
+                            }
+                        }
+
+                        $payment->raw_payload = $respArr;
+                        $payment->status  = Payment::STATUS_SETTLEMENT;
+                        $payment->paid_at = now();
+                        $payment->save();
+
+                        $order->payment_method = Order::METHOD_MIDTRANS;
+                        $order->status = Order::STATUS_PAID;
+                        $order->save();
+
+                        // Update status booth
+                        $order->loadMissing('items.booth');
+                        foreach ($order->items as $item) {
+                            if ($item->booth) {
+                                $item->booth->update(['status' => 'BOOKED', 'expires_at' => null]);
+                            }
+                        }
+                    });
+
+                    // Setelah sinkron, langsung arahkan ke status tanpa pesan tambahan
+                    return redirect()->route('client.payment.status', $order);
+                }
+            }
+        } catch (\Throwable $e) {
+            // Abaikan bila gagal verifikasi cepat, fallback ke pesan biasa
+            \Log::info('Midtrans quick verify on return failed: '.$e->getMessage());
         }
 
         // Berikan pesan informatif bila user belum menyelesaikan pembayaran di Snap

@@ -13,6 +13,13 @@
                     <div class="badge">{{ $p->status }}</div>
                 </div>
                 <div>Amount: Rp {{ number_format($p->amount,0,',','.') }}</div>
+                @if($p->provider === 'BANK_TRANSFER' && $p->va_number)
+                    <div>Bank: <span class="font-semibold">{{ strtoupper($p->bank) }}</span></div>
+                    <div class="flex items-center gap-2">
+                        <span>VA: <span class="font-mono" id="va-{{ $p->id }}">{{ $p->va_number }}</span></span>
+                        <button type="button" class="btn btn-xs" onclick="copyText(document.getElementById('va-{{ $p->id }}').innerText, this)">Copy</button>
+                    </div>
+                @endif
                 @if($p->paid_at)
                     <div>Dibayar pada: {{ $p->paid_at->format('d M Y H:i') }}</div>
                 @endif
@@ -22,11 +29,17 @@
         @endforelse
     </div>
 
+    @php
+        $hasActiveVA = $order && $order->payments
+            ? $order->payments->contains(fn($p) => $p->provider === 'BANK_TRANSFER' && !empty($p->va_number) && $p->status === 'PENDING')
+            : false;
+    @endphp
+
     @if($this->isPaid && $this->hasSettlement)
         <div class="mt-4 flex gap-2">
             <a href="{{ route('home') }}" class="btn btn-success">Pembayaran Selesai</a>
         </div>
-    @else
+    @elseif(!$hasActiveVA)
         <div class="mt-4 flex gap-2">
             <a href="{{ route('client.payment.select', $order) }}" class="btn">Pilih/ubah metode pembayaran</a>
         </div>

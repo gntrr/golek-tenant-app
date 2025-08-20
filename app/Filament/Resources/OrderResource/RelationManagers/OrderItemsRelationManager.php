@@ -11,7 +11,7 @@ use Filament\Tables\Table;
 class OrderItemsRelationManager extends RelationManager
 {
     protected static string $relationship = 'items';
-    protected static ?string $title = 'Order Items';
+    protected static ?string $title = 'Daftar Pesanan';
     protected static ?string $recordTitleAttribute = 'booth.code';
     protected static ?string $icon = 'heroicon-o-queue-list';
 

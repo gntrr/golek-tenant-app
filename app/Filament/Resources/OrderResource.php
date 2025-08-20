@@ -31,7 +31,18 @@ class OrderResource extends Resource
     {
         return $form
             ->schema([
-                //
+                Forms\Components\Section::make('Informasi Pesanan')
+                    ->schema([
+                        Forms\Components\TextInput::make('invoice_number')->label('Invoice')->disabled(),
+                        Forms\Components\TextInput::make('customer_name')->label('Nama Penyewa')->disabled(),
+                        Forms\Components\TextInput::make('email')->label('Email')->disabled(),
+                        Forms\Components\TextInput::make('phone')->label('Telepon')->disabled(),
+                        Forms\Components\Select::make('event_id')->label('Event')->relationship('event', 'name')->disabled(),
+                        Forms\Components\TextInput::make('total_amount')->label('Total')->disabled()->prefix('IDR'),
+                        Forms\Components\TextInput::make('payment_method')->label('Metode Pembayaran')->disabled(),
+                        Forms\Components\TextInput::make('status')->label('Status')->disabled(),
+                        Forms\Components\DateTimePicker::make('created_at')->label('Dibuat Pada')->disabled(),
+                    ])->columns(2),
             ]);
     }
 
@@ -53,7 +64,7 @@ class OrderResource extends Resource
 
                 Tables\Columns\TextColumn::make('total_amount')
                     ->label('Total')->money('IDR', true)->sortable()
-                    ->summarize(Tables\Columns\Summarizers\Sum::make())
+                    ->summarize(Tables\Columns\Summarizers\Sum::make()->label('Total'))
                     ->alignCenter(),
 
                 Tables\Columns\BadgeColumn::make('payment_method')
@@ -163,6 +174,14 @@ class OrderResource extends Resource
                                                     'reviewed_at' => now(),
                                                 ]);
                                         }
+
+                                        // Update status booth menjadi BOOKED
+                                        $order->loadMissing('items.booth');
+                                        foreach ($order->items as $item) {
+                                            if ($item->booth) {
+                                                $item->booth->update(['status' => 'BOOKED', 'expires_at' => null]);
+                                            }
+                                        }
                                         $count++;
                                     }
                                 }
@@ -200,6 +219,14 @@ class OrderResource extends Resource
                                                     'reviewed_by' => null,
                                                     'reviewed_at' => null,
                                                 ]);
+                                        }
+
+                                        // Kembalikan booth ke ON_HOLD (masih dalam antrian pembayaran)
+                                        $order->loadMissing('items.booth');
+                                        foreach ($order->items as $item) {
+                                            if ($item->booth) {
+                                                $item->booth->update(['status' => 'ON_HOLD']);
+                                            }
                                         }
                                         $count++;
                                     }
@@ -239,6 +266,14 @@ class OrderResource extends Resource
                                                     'reviewed_at' => now(),
                                                 ]);
                                         }
+
+                                        // Kembalikan booth menjadi AVAILABLE
+                                        $order->loadMissing('items.booth');
+                                        foreach ($order->items as $item) {
+                                            if ($item->booth) {
+                                                $item->booth->update(['status' => 'AVAILABLE', 'expires_at' => null]);
+                                            }
+                                        }
                                         $count++;
                                     }
                                 }
@@ -256,7 +291,9 @@ class OrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            OrderItemsRelationManager::class,
+            PaymentsRelationManager::class,
+            PaymentProofsRelationManager::class,
         ];
     }
 
@@ -266,7 +303,7 @@ class OrderResource extends Resource
             'index' => Pages\ListOrders::route('/'),
             // 'create' => Pages\CreateOrder::route('/create'),
             'view' => Pages\ViewOrder::route('/{record}'),
-            'edit' => Pages\EditOrder::route('/{record}/edit'),
+            // Hilangkan halaman edit agar resource read-only (edit status tetap via bulk action di index)
         ];
     }
 }

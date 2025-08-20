@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('event_id')->constrained()->onDelete('cascade');
             $table->string('name', 60); // VIP, FEST, FOOD, REGULER, etc.
             $table->string('color', 20)->nullable(); // Hex / RGB
-            $table->decimal('price_multiplier', 5, 2)->default(1.00); // optional
+            // $table->decimal('price_multiplier', 5, 2)->default(1.00); // optional
             $table->timestamps();
 
             $table->unique(['event_id', 'name']);

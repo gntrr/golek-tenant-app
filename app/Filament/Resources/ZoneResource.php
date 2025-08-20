@@ -45,14 +45,14 @@ class ZoneResource extends Resource
                     //     ->label('Warna')
                     //     ->nullable(),
 
-                    Forms\Components\TextInput::make('price_multiplier')
-                        ->label('Kelipatan Harga')
-                        ->helperText('Masukkan kelipatan harga untuk zona ini. Misal: 1.5 untuk 150% dari harga dasar')
-                        ->numeric()
-                        ->minValue(0.1)
-                        ->maxValue(9.99)
-                        ->step('0.01')
-                        ->default(1.00),
+                    // Forms\Components\TextInput::make('price_multiplier')
+                    //     ->label('Kelipatan Harga')
+                    //     ->helperText('Masukkan kelipatan harga untuk zona ini. Misal: 1.5 untuk 150% dari harga dasar')
+                    //     ->numeric()
+                    //     ->minValue(0.1)
+                    //     ->maxValue(9.99)
+                    //     ->step('0.01')
+                    //     ->default(1.00),
                 ]),
             ]);
     }
@@ -79,10 +79,10 @@ class ZoneResource extends Resource
                 //     ->sortable()
                 //     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('price_multiplier')
-                    ->label('Kelipatan Harga')
-                    ->alignCenter()
-                    ->sortable(),
+                // Tables\Columns\TextColumn::make('price_multiplier')
+                //     ->label('Kelipatan Harga')
+                //     ->alignCenter()
+                //     ->sortable(),
 
                 Tables\Columns\TextColumn::make('booths_count')
                     ->label('Jumlah Booth')

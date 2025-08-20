@@ -35,14 +35,14 @@ class DemoEventSeeder extends Seeder
             'event_id' => $event1->id,
             'name' => 'VIP Area',
             'color' => 'gold',
-            'price_multiplier' => 1.5
+            // 'price_multiplier' => 1.5
         ]);
 
         $festivalZone1 = Zone::create([
             'event_id' => $event1->id,
             'name' => 'Festival Area',
             'color' => 'silver',
-            'price_multiplier' => 1.2
+            // 'price_multiplier' => 1.2
         ]);
 
         Booth::insert([
@@ -89,14 +89,14 @@ class DemoEventSeeder extends Seeder
             'event_id' => $event2->id,
             'name' => 'Gold Zone',
             'color' => 'gold',
-            'price_multiplier' => 1.5
+            // 'price_multiplier' => 1.5
         ]);
 
         $silverZone = Zone::create([
             'event_id' => $event2->id,
             'name' => 'Silver Zone',
             'color' => 'silver',
-            'price_multiplier' => 1.2
+            // 'price_multiplier' => 1.2
         ]);
 
         Booth::insert([

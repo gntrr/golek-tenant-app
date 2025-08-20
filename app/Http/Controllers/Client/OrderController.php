@@ -54,8 +54,10 @@ class OrderController extends Controller
             $order->phone = $request->phone;
             $order->company_name = $request->company_name;
             $order->invoice_number = 'INV-' . now()->format('Ymd') . '-' . strtoupper(Str::random(6));
-            $order->total_amount = $booth->base_price; // can be adjusted with zone multipliers
-            $order->payment_method = 'MIDTRANS';
+            // Gunakan base_price langsung (tanpa multiplier zona)
+            $order->total_amount = (int) $booth->base_price;
+            // Payment method akan ditentukan saat user memilih metode di halaman pembayaran
+            $order->payment_method = null;
             $order->status = 'AWAITING_PAYMENT';
             $order->expires_at = now()->addMinutes(10);
             $order->save();
@@ -67,7 +69,7 @@ class OrderController extends Controller
                 'price_snapshot' => $booth->base_price,
             ]);
 
-            // Lock booth for 10 minutes
+            // Lock booth for 10 minutes (set ON_HOLD)
             $booth->status = 'ON_HOLD';
             $booth->expires_at = now()->addMinutes(10);
             $booth->save();

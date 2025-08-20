@@ -11,7 +11,7 @@ class Zone extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['event_id','name','color','price_multiplier'];
+    protected $fillable = ['event_id','name','color'];
 
     public function event(): BelongsTo { return $this->belongsTo(Event::class); }
     public function booths(): HasMany { return $this->hasMany(Booth::class); }

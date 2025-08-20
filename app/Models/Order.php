@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany};
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Models\PaymentProof;
 
 class Order extends Model
 {
@@ -34,6 +35,7 @@ class Order extends Model
     public function event(): BelongsTo { return $this->belongsTo(Event::class); }
     public function items(): HasMany { return $this->hasMany(OrderItem::class); }
     public function payments(): HasMany { return $this->hasMany(Payment::class); }
+    public function paymentProofs(): HasMany { return $this->hasMany(PaymentProof::class); }
 
     /* Scopes */
     public function scopePaid($q){ return $q->where('status', self::STATUS_PAID); }
