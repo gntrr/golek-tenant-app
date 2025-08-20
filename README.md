@@ -23,7 +23,10 @@ Aplikasi pemesanan booth event dengan alur pemesanan modern, metode pembayaran g
 	- Settings (toggle pembayaran, fallback banner, instruksi bank)
 	- Webhook Logs (read-only), Email Logs (pencatatan pengiriman email)
 
-Catatan: Beberapa bagian manajemen/log di admin masih dalam tahap penyempurnaan akses dan UX. Selain itu, cron job untuk handle order dengan status "ON_HOLD" masih dalam tahap konfigurasi.
+Catatan: 
+- Beberapa bagian manajemen/log di admin masih dalam tahap penyempurnaan akses dan UX. 
+- Cron job untuk handle order dengan status "ON_HOLD" masih dalam tahap konfigurasi.
+- Poin 1 juga masih dalam tahap konfigurasi, terutama untuk log dari Midtrans
 
 ---
 
@@ -32,7 +35,7 @@ Catatan: Beberapa bagian manajemen/log di admin masih dalam tahap penyempurnaan 
 Prasyarat:
 - PHP 8.2+ dan Composer
 - Node.js 18+ (atau Bun) untuk aset Vite
-- MySQL/MariaDB
+- PostgreSQL
 - Opsional: Redis (session/queue) jika butuh scale-out
 
 Langkah cepat:
@@ -86,14 +89,47 @@ Hal penting:
 - Pastikan direktori tulis writable (lihat bagian lokal)
 - Untuk multi-replica: gunakan Redis untuk session/queue, atau aktifkan sticky session
 
-Environment yang umum:
-- APP_NAME, APP_ENV=production, APP_KEY, APP_URL
-- DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
-- QUEUE_CONNECTION=database atau redis
-- CACHE_DRIVER=file/redis, SESSION_DRIVER=file/redis
-- FILESYSTEM_DISK=local atau s3 (+ AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, AWS_BUCKET)
-- MAIL_MAILER=smtp, MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, MAIL_ENCRYPTION, MAIL_FROM_ADDRESS, MAIL_FROM_NAME
-- MIDTRANS_SERVER_KEY, MIDTRANS_IS_PRODUCTION (false/true)
+Environment yang umum (dan kegunaannya):
+
+- App
+	- `APP_NAME`: Nama aplikasi (muncul di email/title).
+	- `APP_ENV`: `local`/`staging`/`production` untuk perilaku environment.
+	- `APP_KEY`: Kunci enkripsi. Wajib di-set via `php artisan key:generate`.
+	- `APP_URL`: Base URL aplikasi (dipakai untuk link asset, email, redirect).
+	- `APP_DEBUG`: Set `false` di production agar error tidak terekspos.
+
+- Database (PostgreSQL)
+	- `DB_CONNECTION=pgsql`: Driver database Postgres.
+	- `DB_HOST`: Host Postgres (contoh: `localhost` atau hostname layanan).
+	- `DB_PORT=5432`: Port Postgres (default 5432).
+	- `DB_DATABASE`: Nama database.
+	- `DB_USERNAME`: Username database.
+	- `DB_PASSWORD`: Password database.
+	- Catatan: Jika hosting memberi `DATABASE_URL`, map nilainya ke variabel di atas atau gunakan helper parsing sesuai platform.
+
+- Queue & Cache & Session
+	- `QUEUE_CONNECTION`: `database` (default siap pakai) atau `redis`.
+		- Worker sudah dijalankan via supervisor (lihat nixpacks.toml), jadi aman untuk kirim email asinkron dsb.
+	- `CACHE_DRIVER`: `file` atau `redis`. Untuk multi-replica disarankan `redis`.
+	- `SESSION_DRIVER`: `file` atau `redis`. Untuk multi-replica disarankan `redis` (hindari sesi pindah pod).
+
+- Filesystem (upload permanen)
+	- `FILESYSTEM_DISK`: `local` atau `s3`.
+		- Jika `s3`, set juga: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`, `AWS_BUCKET`.
+		- Livewire temporary upload tetap memakai disk lokal (default) agar cepat.
+
+- Mail (SMTP)
+	- `MAIL_MAILER=smtp`: Gunakan SMTP.
+	- `MAIL_HOST`, `MAIL_PORT`: Host/port SMTP.
+	- `MAIL_USERNAME`, `MAIL_PASSWORD`: Kredensial SMTP.
+	- `MAIL_ENCRYPTION`: `tls`/`ssl` sesuai provider.
+	- `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME`: Identitas pengirim email.
+
+- Midtrans
+	- `MIDTRANS_SERVER_KEY`: Server key dari Midtrans.
+    - `MIDTRANS_CLIENT_KEY`: Client key dari Midtrans.
+	- `MIDTRANS_IS_PRODUCTION`: `false` untuk sandbox, `true` untuk live.
+	- Pastikan webhook `POST /webhook/midtrans` dapat diakses publik dan didaftarkan di dashboard Midtrans.
 
 Catatan Livewire upload:
 - Batas upload sudah disetel (Nginx 35M, PHP 30M) di `nixpacks.toml`
