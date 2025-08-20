@@ -13,10 +13,10 @@
                     <div class="badge">{{ $p->status }}</div>
                 </div>
                 <div>Amount: Rp {{ number_format($p->amount,0,',','.') }}</div>
-                @if($p->provider === 'BANK_TRANSFER' && $p->va_number)
+        @if($p->provider === 'BANK_TRANSFER' && $p->va_number)
                     <div>Bank: <span class="font-semibold">{{ strtoupper($p->bank) }}</span></div>
                     <div class="flex items-center gap-2">
-                        <span>VA: <span class="font-mono" id="va-{{ $p->id }}">{{ $p->va_number }}</span></span>
+            <span>VA: <span class="font-mono" id="va-{{ $p->id }}">{{ trim(chunk_split($p->va_number, 4, ' ')) }}</span></span>
                         <button type="button" class="btn btn-xs" onclick="copyText(document.getElementById('va-{{ $p->id }}').innerText, this)">Copy</button>
                     </div>
                 @endif

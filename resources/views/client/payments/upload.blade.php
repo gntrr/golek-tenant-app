@@ -24,7 +24,7 @@
                         <div class="font-mono">{{ strtoupper($payment->bank ?? '-') }}</div>
                         <div>VA Number</div>
                         <div class="flex items-center gap-2">
-                            <span class="font-mono" id="va-value">{{ $payment->va_number ?? '-' }}</span>
+                            <span class="font-mono" id="va-value">{{ !empty($payment->va_number) ? trim(chunk_split($payment->va_number, 4, ' ')) : '-' }}</span>
                             @if(!empty($payment->va_number))
                                 <button type="button" class="btn btn-xs" onclick="copyText(document.getElementById('va-value').innerText, this)">Copy</button>
                             @endif
@@ -94,7 +94,8 @@
     }
     function copyText(text, btn){
         if(!text) return;
-        navigator.clipboard.writeText(text).then(()=>{
+        const raw = (''+text).replace(/\D/g, '');
+        navigator.clipboard.writeText(raw).then(()=>{
             if(btn){
                 const prev = btn.innerText;
                 btn.innerText = 'Disalin';

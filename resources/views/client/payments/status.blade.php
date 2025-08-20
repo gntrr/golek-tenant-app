@@ -31,7 +31,8 @@
     }
     function copyText(text, btn){
         if(!text) return;
-        navigator.clipboard.writeText(text).then(()=>{
+        const raw = (''+text).replace(/\D/g, '');
+        navigator.clipboard.writeText(raw).then(()=>{
             if(btn){
                 const prev = btn.innerText;
                 btn.innerText = 'Disalin';

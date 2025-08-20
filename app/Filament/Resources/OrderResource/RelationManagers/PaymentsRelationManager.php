@@ -20,7 +20,13 @@ class PaymentsRelationManager extends RelationManager
                 Tables\Columns\TextColumn::make('status')->badge()->label('Status'),
                 Tables\Columns\TextColumn::make('amount')->money('IDR', true)->label('Jumlah'),
                 Tables\Columns\TextColumn::make('paid_at')->dateTime()->since()->toggleable(isToggledHiddenByDefault: true)->label('Dibayar Pada'),
-                Tables\Columns\TextColumn::make('va_number')->label('VA')->toggleable(isToggledHiddenByDefault: true)->label('Nomor VA'),
+                Tables\Columns\TextColumn::make('va_number')
+                    ->label('Nomor VA')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->formatStateUsing(fn($state) => $state ? trim(chunk_split($state, 4, ' ')) : '-')
+                    ->copyable()
+                    ->copyMessage('Nomor VA disalin')
+                    ->copyMessageDuration(1500),
                 Tables\Columns\TextColumn::make('bank')->toggleable(isToggledHiddenByDefault: true)->label('Bank'),
                 Tables\Columns\TextColumn::make('midtrans_txn_id')->label('Txn ID')->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')->since()->toggleable(isToggledHiddenByDefault: true),

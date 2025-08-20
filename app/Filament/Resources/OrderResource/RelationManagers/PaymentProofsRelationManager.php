@@ -16,7 +16,13 @@ class PaymentProofsRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('file_path')->label('File'),
+                Tables\Columns\TextColumn::make('file_path')
+                    ->label('File')
+                    ->url(fn($record) => \Illuminate\Support\Str::startsWith($record->file_path, ['http://','https://'])
+                        ? $record->file_path
+                        : (\Illuminate\Support\Facades\Storage::disk(config('filesystems.default')))->url($record->file_path)
+                    , true)
+                    ->openUrlInNewTab(),
                 Tables\Columns\TextColumn::make('status')->badge(),
                 Tables\Columns\TextColumn::make('reviewer.name')->label('Reviewer')->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('reviewed_at')->dateTime()->since()->toggleable(isToggledHiddenByDefault: true),
