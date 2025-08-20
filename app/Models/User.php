@@ -46,9 +46,9 @@ class User extends Authenticatable implements FilamentUser
     ];
 
     // Avoid error 403 on filament panel when on production env
-    public function canAccessFilament(Panel $panel): bool
+    public function canAccessPanel(Panel $panel): bool
     {
-        // check is_admin on users table
+        // check is_admin = true on users table
         return $this->is_admin;
     }
 }
