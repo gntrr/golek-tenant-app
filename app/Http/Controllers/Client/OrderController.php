@@ -57,7 +57,7 @@ class OrderController extends Controller
             // Gunakan base_price langsung (tanpa multiplier zona)
             $order->total_amount = (int) $booth->base_price;
             // Payment method akan ditentukan saat user memilih metode di halaman pembayaran
-            $order->payment_method = null;
+            $order->payment_method = "MIDTRANS"; // Default payment method, nanti menyesuaikan pilihan user
             $order->status = 'AWAITING_PAYMENT';
             $order->expires_at = now()->addMinutes(10);
             $order->save();

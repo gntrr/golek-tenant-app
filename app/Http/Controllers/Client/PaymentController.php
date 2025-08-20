@@ -18,6 +18,22 @@ use Midtrans\Transaction as MidtransTransaction;
 
 class PaymentController extends Controller
 {
+    /**
+     * Get the latest Payment for an order or create a new in-memory instance.
+     * We aim to maintain a single payment row per order and update its provider.
+     */
+    private function getOrCreateOrderPayment(Order $order): Payment
+    {
+        $payment = Payment::where('order_id', $order->id)->latest('id')->first();
+        if (!$payment) {
+            $payment = new Payment();
+            $payment->order_id = $order->id;
+            $payment->amount = $order->total_amount;
+            $payment->status = Payment::STATUS_INITIATED;
+        }
+        return $payment;
+    }
+
     public function selectMethod(Order $order)
     {
         $order->load('event');
@@ -56,14 +72,11 @@ class PaymentController extends Controller
         MidtransConfig::$is3ds = true;
 
         try {
-            // Buat atau ambil Payment record untuk order ini (MIDTRANS)
-            $payment = Payment::firstOrCreate([
-                'order_id' => $order->id,
-                'provider' => Payment::PROVIDER_MIDTRANS,
-            ], [
-                'amount' => $order->total_amount,
-                'status' => Payment::STATUS_INITIATED,
-            ]);
+            // Gunakan satu baris payment per order, update providernya bila berubah
+            $payment = $this->getOrCreateOrderPayment($order);
+            $payment->provider = Payment::PROVIDER_MIDTRANS;
+            $payment->amount = $order->total_amount;
+            $payment->status = Payment::STATUS_INITIATED;
 
             $order->loadMissing(['items.booth']);
 
@@ -129,17 +142,18 @@ class PaymentController extends Controller
         );
         $fallbackBanner = $midtransEnabled ? null : Setting::get('payments', 'fallback_banner', null);
         $instructions = Setting::get('payments', 'bank_transfer_instructions', null);
+        if (!$instructions) {
+            $instructions = "Silakan transfer ke salah satu rekening berikut:\n\n• BCA 1234567890 a.n. PT Golek Tenant\n• BNI 9876543210 a.n. PT Golek Tenant\n\nNominal harus sesuai invoice.\nSetelah transfer, unggah bukti pada halaman \"Upload Bukti Pembayaran\".\nVerifikasi manual membutuhkan waktu maks. 1x24 jam kerja.";
+        }
 
-        // Siapkan VA number jika belum ada payment BANK_TRANSFER untuk order ini
-        $payment = Payment::firstOrCreate([
-            'order_id' => $order->id,
-            'provider' => Payment::PROVIDER_BANK,
-        ], [
-            'amount' => $order->total_amount,
-            'status' => Payment::STATUS_PENDING,
-        ]);
+    // Siapkan/ambil payment tunggal dan ubah ke BANK_TRANSFER
+    $payment = $this->getOrCreateOrderPayment($order);
+    $payment->provider = Payment::PROVIDER_BANK;
+    $payment->amount = $order->total_amount;
+    $payment->status = Payment::STATUS_PENDING;
+    $payment->save();
 
-        if (!$payment->va_number) {
+    if (!$payment->va_number) {
             // Generate VA sederhana (simulasi): BANK + tanggal + 6 digit acak
             $bank = 'bca'; // bisa ditentukan dari pilihan user di form, default bca
             $va   = '988'.date('md').str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
@@ -162,18 +176,16 @@ class PaymentController extends Controller
 
         $path = $request->file('proof')->store('payment-proofs/'.date('Y/m'), 's3');
 
-        // Create or update payment record
-        $payment = Payment::firstOrCreate([
-            'order_id' => $order->id,
-            'provider' => Payment::PROVIDER_BANK,
-        ], [
-            'amount' => $order->total_amount,
-            'status' => Payment::STATUS_PENDING,
-        ]);
+        // Gunakan satu baris payment per order dan pastikan providernya BANK_TRANSFER
+        $payment = $this->getOrCreateOrderPayment($order);
+        $payment->provider = Payment::PROVIDER_BANK;
+        $payment->amount = $order->total_amount;
+        $payment->status = Payment::STATUS_PENDING;
+        $payment->save();
 
         // Regenerate VA if bank changed or VA empty
         $selectedBank = $request->input('bank');
-    if ($selectedBank && (!$payment->va_number || $payment->bank !== $selectedBank)) {
+        if ($selectedBank && (!$payment->va_number || $payment->bank !== $selectedBank)) {
             $prefixMap = [
                 'bca' => '988',
                 'bni' => '609',
@@ -194,7 +206,7 @@ class PaymentController extends Controller
             'status' => PaymentProof::STATUS_PENDING,
         ]);
 
-    $order->payment_method = Order::METHOD_BANK;
+        $order->payment_method = Order::METHOD_BANK;
         $order->status = Order::STATUS_AWAITING;
         $order->save();
 
@@ -207,13 +219,10 @@ class PaymentController extends Controller
             'bank' => ['required', 'in:bca,bni,bri,permata'],
         ]);
 
-        $payment = Payment::firstOrCreate([
-            'order_id' => $order->id,
-            'provider' => Payment::PROVIDER_BANK,
-        ], [
-            'amount' => $order->total_amount,
-            'status' => Payment::STATUS_PENDING,
-        ]);
+        $payment = $this->getOrCreateOrderPayment($order);
+        $payment->provider = Payment::PROVIDER_BANK;
+        $payment->amount = $order->total_amount;
+        $payment->status = Payment::STATUS_PENDING;
 
         $selectedBank = $request->input('bank');
         $prefixMap = [
@@ -271,14 +280,11 @@ class PaymentController extends Controller
 
         DB::beginTransaction();
         try {
-            // Ambil / buat payment record
-            $payment = Payment::firstOrCreate([
-                'order_id' => $order->id,
-                'provider' => Payment::PROVIDER_MIDTRANS,
-            ], [
-                'amount' => $order->total_amount,
-                'status' => Payment::STATUS_PENDING,
-            ]);
+            // Ambil payment tunggal dan set provider ke MIDTRANS
+            $payment = $this->getOrCreateOrderPayment($order);
+            $payment->provider = Payment::PROVIDER_MIDTRANS;
+            $payment->amount = $order->total_amount;
+            $payment->status = Payment::STATUS_PENDING;
 
             $transactionStatus = $payload['transaction_status'] ?? null;
             $fraudStatus = $payload['fraud_status'] ?? null;
@@ -409,13 +415,10 @@ class PaymentController extends Controller
                 if ($txnStatus === 'settlement' || ($txnStatus === 'capture' && $fraud !== 'challenge')) {
                     // Sinkronkan seperti di webhook
                     \DB::transaction(function () use ($order, $respArr, $payType) {
-                        $payment = Payment::firstOrCreate([
-                            'order_id' => $order->id,
-                            'provider' => Payment::PROVIDER_MIDTRANS,
-                        ], [
-                            'amount' => $order->total_amount,
-                            'status' => Payment::STATUS_PENDING,
-                        ]);
+                        $payment = $this->getOrCreateOrderPayment($order);
+                        $payment->provider = Payment::PROVIDER_MIDTRANS;
+                        $payment->amount = $order->total_amount;
+                        $payment->status = Payment::STATUS_PENDING;
 
                         if (!empty($respArr['transaction_id'] ?? null)) {
                             $payment->midtrans_txn_id = (string) $respArr['transaction_id'];

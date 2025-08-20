@@ -35,10 +35,10 @@
                     @csrf
                     <div>
                         <label class="label"><span class="label-text">Ganti Bank VA</span></label>
-                        <select name="bank" class="select select-bordered" required>
+                        <select id="changeBankSelect" name="bank" class="select select-bordered" required>
                             @php($banks = ['bca'=>'BCA','bni'=>'BNI','bri'=>'BRI','permata'=>'Permata'])
                             @foreach($banks as $code=>$name)
-                                <option value="{{ $code }}">{{ $name }}</option>
+                                <option value="{{ $code }}" @selected(($payment->bank ?? old('bank')) === $code)>{{ $name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -48,16 +48,7 @@
 
             <form method="POST" action="{{ route('client.payment.upload.store', $order) }}" enctype="multipart/form-data" class="mt-4">
                 @csrf
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="label"><span class="label-text">Pilih Bank VA</span></label>
-                        <select name="bank" class="select select-bordered w-full" required>
-                            @php($banks = ['bca'=>'BCA','bni'=>'BNI','bri'=>'BRI','permata'=>'Permata'])
-                            @foreach($banks as $code=>$name)
-                                <option value="{{ $code }}" @selected(($payment->bank ?? old('bank')) === $code)>{{ $name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                <div class="grid grid-cols-1 gap-4">
                     <div>
                         <label class="label"><span class="label-text">Bukti Transfer</span></label>
                         <input type="file" name="proof" class="file-input file-input-bordered w-full" accept="image/png,image/jpeg,application/pdf" required />
