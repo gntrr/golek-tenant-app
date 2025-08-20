@@ -51,14 +51,15 @@ class SettingSeeder extends Seeder
                 'group'      => 'payments',
                 'key'        => 'bank_transfer_instructions',
                 'value'      => <<<TEXT
-                                    Silakan transfer ke salah satu rekening berikut:
+                                    Pembayaran melalui Virtual Account (VA):
 
-                                    • BCA 1234567890 a.n. PT Golek Tenant
-                                    • BNI 9876543210 a.n. PT Golek Tenant
-
-                                    Nominal harus sesuai invoice.
-                                    Setelah transfer, unggah bukti pada halaman "Upload Bukti Pembayaran".
-                                    Verifikasi manual membutuhkan waktu maks. 1x24 jam kerja.
+                                    • Pilih bank VA yang diinginkan (BCA, BNI, BRI, Mandiri, Permata, CIMB, dll.).
+                                    • Sistem akan membuat nomor VA unik untuk pesanan Anda.
+                                    • Bayar tepat sesuai nominal pada invoice.
+                                    • Lakukan pembayaran via ATM, m-banking, internet banking, atau setor tunai sesuai bank terpilih.
+                                    • Batas waktu pembayaran 24 jam sejak VA dibuat.
+                                    • Setelah berhasil, silahkan upload bukti pembayaran di kolom "Bukti Transfer".
+                                    • Jika VA kedaluwarsa atau pembayaran gagal, buat ulang nomor VA dari halaman invoice.
                                     TEXT,
                 'type'       => 'text',
                 'created_at' => $now,

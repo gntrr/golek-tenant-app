@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\InvoiceMail;
+use App\Models\EmailLog;
 
 class OrderController extends Controller
 {
@@ -74,12 +77,23 @@ class OrderController extends Controller
             $booth->expires_at = now()->addMinutes(10);
             $booth->save();
 
-            // Send Invoice Email (queued or simple for now)
-            // TODO: Implement mailable/template and queue later
+            // Kirim email invoice + logging
             try {
-                // dispatch(new SendInvoiceEmail($order)); // placeholder
+                Mail::to($order->email)->send(new InvoiceMail($order));
+                EmailLog::create([
+                    'to_email' => $order->email,
+                    'subject' => 'Invoice '.$order->invoice_number,
+                    'template' => 'invoice',
+                    'status' => 'SENT',
+                ]);
             } catch (\Throwable $e) {
-                // log email failure if necessary
+                EmailLog::create([
+                    'to_email' => $order->email,
+                    'subject' => 'Invoice '.$order->invoice_number,
+                    'template' => 'invoice',
+                    'status' => 'FAILED',
+                    'error' => $e->getMessage(),
+                ]);
             }
 
             return redirect()->route('client.payment.select', $order);

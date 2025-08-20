@@ -1,11 +1,12 @@
 <div wire:init="refreshData" wire:poll.5s="refreshData">
-    <h2 class="card-title">Status Pesanan</h2>
+    <h1 class="card-title">Detail Pesanan</h1>
+    <p class="mb-4">Berikut adalah detail pesanan Anda. Silakan periksa informasi pembayaran dan status pesanan.</p>
     <p>Invoice: <span class="font-semibold">{{ $order?->invoice_number }}</span></p>
     <p>Status Order: <span class="badge">{{ $order?->status }}</span></p>
     <p>Total: <span class="font-semibold">Rp {{ number_format($order?->total_amount ?? 0,0,',','.') }}</span></p>
 
     <div class="mt-4">
-        <h3 class="font-semibold">Pembayaran</h3>
+        <h3 class="font-semibold">Metode Pembayaran</h3>
         @forelse($order?->payments ?? [] as $p)
             <div class="border rounded p-3 mt-2">
                 <div class="flex justify-between">

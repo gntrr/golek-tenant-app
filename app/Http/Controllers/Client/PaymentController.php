@@ -15,6 +15,9 @@ use App\Models\WebhookLog;
 use Midtrans\Config as MidtransConfig;
 use Midtrans\Snap as MidtransSnap;
 use Midtrans\Transaction as MidtransTransaction;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\ReceiptMail;
+use App\Models\EmailLog;
 
 class PaymentController extends Controller
 {
@@ -143,7 +146,7 @@ class PaymentController extends Controller
         $fallbackBanner = $midtransEnabled ? null : Setting::get('payments', 'fallback_banner', null);
         $instructions = Setting::get('payments', 'bank_transfer_instructions', null);
         if (!$instructions) {
-            $instructions = "Silakan transfer ke salah satu rekening berikut:\n\n• BCA 1234567890 a.n. PT Golek Tenant\n• BNI 9876543210 a.n. PT Golek Tenant\n\nNominal harus sesuai invoice.\nSetelah transfer, unggah bukti pada halaman \"Upload Bukti Pembayaran\".\nVerifikasi manual membutuhkan waktu maks. 1x24 jam kerja.";
+            $instructions = "";
         }
 
     // Siapkan/ambil payment tunggal dan ubah ke BANK_TRANSFER
@@ -307,8 +310,10 @@ class PaymentController extends Controller
             $fraudStatus = $payload['fraud_status'] ?? null;
             $paymentType = $payload['payment_type'] ?? null;
 
-            // Catat transaksi Midtrans saat ada (transaction_id atau transaksi id lain)
-            if (!empty($payload['transaction_id'] ?? null)) {
+            // Catat transaksi Midtrans: prioritaskan reference_id, lalu transaction_id, lalu fallback order_id|status
+            if (!empty($payload['reference_id'] ?? null)) {
+                $payment->midtrans_txn_id = (string) $payload['reference_id'];
+            } elseif (!empty($payload['transaction_id'] ?? null)) {
                 $payment->midtrans_txn_id = (string) $payload['transaction_id'];
             } elseif (!empty($payload['transaction_status'] ?? null) && !empty($payload['order_id'] ?? null)) {
                 // fallback: gunakan order_id + status sebagai jejak bila transaction_id tidak disertakan (jarang terjadi di sandbox)
@@ -346,13 +351,6 @@ class PaymentController extends Controller
                 $order->status = Order::STATUS_AWAITING;
             } elseif ($transactionStatus === 'deny') {
                 $payment->status = Payment::STATUS_DENY;
-                $order->status = Order::STATUS_EXPIRED;
-            } elseif ($transactionStatus === 'expire') {
-                $payment->status = Payment::STATUS_EXPIRE;
-                $order->status = Order::STATUS_EXPIRED;
-            } elseif ($transactionStatus === 'cancel') {
-                $payment->status = Payment::STATUS_CANCEL;
-                $order->status = Order::STATUS_CANCELLED;
             }
 
             $payment->save();
@@ -365,6 +363,25 @@ class PaymentController extends Controller
                     if ($item->booth) {
                         $item->booth->update(['status' => 'BOOKED', 'expires_at' => null]);
                     }
+                }
+
+                // Kirim receipt email + logging (idempotent best-effort; biarkan email dobel dicegah oleh provider)
+                try {
+                    Mail::to($order->email)->send(new ReceiptMail($order));
+                    EmailLog::create([
+                        'to_email' => $order->email,
+                        'subject' => 'Receipt Pembayaran '.$order->invoice_number,
+                        'template' => 'receipt',
+                        'status' => 'SENT',
+                    ]);
+                } catch (\Throwable $e) {
+                    EmailLog::create([
+                        'to_email' => $order->email,
+                        'subject' => 'Receipt Pembayaran '.$order->invoice_number,
+                        'template' => 'receipt',
+                        'status' => 'FAILED',
+                        'error' => $e->getMessage(),
+                    ]);
                 }
             } elseif (in_array($order->status, [Order::STATUS_EXPIRED, Order::STATUS_CANCELLED])) {
                 foreach ($order->items as $item) {
@@ -437,11 +454,13 @@ class PaymentController extends Controller
                         $payment->amount = $order->total_amount;
                         $payment->status = Payment::STATUS_PENDING;
 
-                        if (!empty($respArr['transaction_id'] ?? null)) {
-                            $payment->midtrans_txn_id = (string) $respArr['transaction_id'];
-                        } elseif (!empty($respArr['status_code'] ?? null)) {
-                            $payment->midtrans_txn_id = (string) ($invoice.'|'.$respArr['status_code']);
-                        }
+                            if (!empty($respArr['reference_id'] ?? null)) {
+                                $payment->midtrans_txn_id = (string) $respArr['reference_id'];
+                            } elseif (!empty($respArr['transaction_id'] ?? null)) {
+                                $payment->midtrans_txn_id = (string) $respArr['transaction_id'];
+                            } elseif (!empty($respArr['status_code'] ?? null)) {
+                                $payment->midtrans_txn_id = (string) ($invoice.'|'.$respArr['status_code']);
+                            }
 
                         if ($payType === 'bank_transfer') {
                             if (!empty($respArr['va_numbers'][0]['va_number'] ?? null)) {
@@ -468,6 +487,25 @@ class PaymentController extends Controller
                             if ($item->booth) {
                                 $item->booth->update(['status' => 'BOOKED', 'expires_at' => null]);
                             }
+                        }
+
+                        // Kirim receipt email + logging
+                        try {
+                            Mail::to($order->email)->send(new \App\Mail\ReceiptMail($order));
+                            \App\Models\EmailLog::create([
+                                'to_email' => $order->email,
+                                'subject' => 'Receipt Pembayaran '.$order->invoice_number,
+                                'template' => 'receipt',
+                                'status' => 'SENT',
+                            ]);
+                        } catch (\Throwable $e) {
+                            \App\Models\EmailLog::create([
+                                'to_email' => $order->email,
+                                'subject' => 'Receipt Pembayaran '.$order->invoice_number,
+                                'template' => 'receipt',
+                                'status' => 'FAILED',
+                                'error' => $e->getMessage(),
+                            ]);
                         }
                     });
 
