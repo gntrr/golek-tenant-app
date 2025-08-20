@@ -145,6 +145,69 @@ Untuk mengakses demo sistem khususnya di halaman admin, silahkan lakukan login d
 
 ---
 
+## Hak Akses Filament (403) dan is_admin
+
+Filament membatasi akses panel admin menggunakan metode `canAccessFilament()` pada model `User`. Di proyek ini, akses diberikan jika kolom `is_admin` bernilai `true`. Jika Anda melihat error 403 saat membuka `/admin`, pastikan pengguna Anda adalah admin.
+
+1) Menandai pengguna sebagai admin (set `is_admin = true`)
+- Via Tinker:
+	```cmd
+	php artisan tinker
+	```
+	```php
+	>>> $u = \App\Models\User::where('email','admin@example.com')->first();
+	>>> $u?->forceFill(['is_admin' => true])->save();
+	```
+- Via SQL (PostgreSQL):
+	```sql
+	UPDATE users SET is_admin = TRUE WHERE email = 'admin@example.com';
+	```
+
+2) Membuat user admin baru
+- Via Tinker:
+	```cmd
+	php artisan tinker
+	```
+	```php
+	>>> \App\Models\User::create([
+	...   'name' => 'Admin',
+	...   'email' => 'admin@example.com',
+	...   'password' => bcrypt('password'),
+	...   'is_admin' => true,
+	... ]);
+	```
+
+3) Jika kolom `is_admin` belum ada
+- Buat migration untuk menambahkan kolom boolean `is_admin` (default `false`):
+	```cmd
+	php artisan make:migration add_is_admin_to_users_table --table=users
+	```
+	Contoh isi migration:
+	```php
+	return new class extends Migration {
+			public function up(): void {
+					Schema::table('users', function (Blueprint $table) {
+							$table->boolean('is_admin')->default(false)->after('password');
+					});
+			}
+			public function down(): void {
+					Schema::table('users', function (Blueprint $table) {
+							$table->dropColumn('is_admin');
+					});
+			}
+	};
+	```
+	Lalu jalankan:
+	```cmd
+	php artisan migrate
+	```
+
+Catatan:
+- PostgreSQL mendukung tipe boolean secara native (`TRUE`/`FALSE`).
+- Pastikan kembali nilai `is_admin` sudah `true` untuk akun yang digunakan masuk ke panel Filament.
+
+---
+
 ## Alur Pemesanan Booth (End-to-End)
 
 1) Pilih Event & Booth

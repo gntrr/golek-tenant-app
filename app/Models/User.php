@@ -42,4 +42,11 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    // Avoid error 403 on filament panel when on production env
+    public function canAccessFilament(Panel $panel): bool
+    {
+        // check is_admin on users table
+        return $this->is_admin;
+    }
 }
