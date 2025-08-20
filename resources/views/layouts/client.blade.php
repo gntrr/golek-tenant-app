@@ -6,21 +6,30 @@
     <title>{{ $title ?? 'Golek Tenant' }}</title>
     @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
-<body data-theme="light" class="min-h-screen flex flex-col">
-    <div class="navbar bg-base-100 shadow">
-        <div class="container mx-auto">
-            <div class="flex-1">
-                <a href="{{ route('home') }}" class="btn btn-ghost normal-case text-xl">Golek Tenant</a>
-            </div>
-            <div class="flex-none">
-                <ul class="menu menu-horizontal px-1">
-                    <li><a href="{{ route('client.events.index') }}">Events</a></li>
+<body data-theme="pastel" class="min-h-screen flex flex-col">
+    <div class="navbar bg-base-100 shadow-sm">
+        <div class="flex-1">
+            <a href="{{ route('home') }}" class="btn btn-ghost normal-case text-xl">Golek Tenant</a>
+        </div>
+        <div class="flex-none">
+            <ul class="menu menu-horizontal px-1">
+            <li><a href="{{ route('client.events.index') }}" class="">Event</a></li>
+            <li><a href="{{ route('client.payment.check.form') }}" class="">Cek Invoice</a></li>
+            <li>
+                <details>
+                <summary>Informasi</summary>
+                <ul class="bg-base-100 rounded-t-none p-2">
+                    <li><a href="#">Tentang Kami</a></li>
+                    <li><a href="#">Informasi Refund</a></li>
+                    <li><a href="#">Kontak Kami</a></li>
                 </ul>
-            </div>
+                </details>
+            </li>
+            </ul>
         </div>
     </div>
 
-    <main class="container mx-auto flex-1 p-4 md:p-6 lg:p-8">
+    <main class="container mx-auto flex-1 p-4 md:p-6 lg:p-8 max-w-7xl">
         @yield('content')
     </main>
 

@@ -9,6 +9,20 @@ use Illuminate\Support\Facades\Storage;
 
 class EventController extends Controller
 {
+    public function home()
+    {
+        // Ambil 3 event aktif terdekat untuk gallery di landing page
+        $events = Event::where('is_active', true)
+            ->orderBy('starts_at', 'asc')
+            ->limit(3)
+            ->get()
+            ->map(function ($event) {
+                $event->flyer_url = $event->flyer_path ? Storage::disk('s3')->url($event->flyer_path) : null;
+                return $event;
+            });
+
+        return view('client.home', compact('events'));
+    }
     public function index()
     {
         $events = Event::where('is_active', true)

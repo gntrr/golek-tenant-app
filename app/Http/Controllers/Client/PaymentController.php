@@ -246,6 +246,23 @@ class PaymentController extends Controller
         return view('client.payments.status', compact('order'));
     }
 
+    // Render form cek status pembayaran berdasarkan invoice
+    public function checkForm()
+    {
+        return view('client.payments.check');
+    }
+
+    // Proses form cek status: cari order by invoice_number lalu redirect ke halaman status
+    public function check(Request $request)
+    {
+        $data = $request->validate(['invoice' => ['required', 'string']]);
+        $order = Order::where('invoice_number', trim($data['invoice']))->first();
+        if (!$order) {
+            return back()->withErrors(['invoice' => 'Invoice tidak ditemukan.']);
+        }
+        return redirect()->route('client.payment.status', $order);
+    }
+
     public function handleMidtransCallback(Request $request)
     {
         $payload = $request->all();

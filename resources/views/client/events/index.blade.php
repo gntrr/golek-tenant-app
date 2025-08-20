@@ -1,7 +1,10 @@
 @extends('layouts.client')
 
 @section('content')
-<h1 class="text-2xl font-bold mb-4">Active Events</h1>
+<div class="gap-2 mb-6">
+    <h1 class="text-2xl font-bold">Event Terkini</h1>
+    <p class="text-md opacity-70">Lihat semua event yang sedang berlangsung dan temukan booth yang sesuai untuk kebutuhan Anda.</p>
+</div>
 
 @if(session('status'))
 <div class="alert alert-info mb-4">{{ session('status') }}</div>

@@ -17,8 +17,8 @@ use App\Http\Controllers\Client\PaymentController;
 |
 */
 
-// Landing page redirect to events
-Route::get('/', [EventController::class, 'index'])->name('home');
+// Landing page with hero + gallery
+Route::get('/', [EventController::class, 'home'])->name('home');
 
 // Client Routes - Event & Booth Browsing
 Route::prefix('events')->name('client.events.')->group(function () {
@@ -40,6 +40,9 @@ Route::prefix('payment')->name('client.payment.')->group(function () {
     Route::post('/midtrans/{order}', [PaymentController::class, 'processMidtrans'])->name('midtrans');
     // Return handler dari Midtrans Snap (Finish/Unfinish/Error)
     Route::get('/midtrans/return', [PaymentController::class, 'midtransReturn'])->name('midtrans.return');
+    // Cek status pembayaran via form
+    Route::get('/check', [PaymentController::class, 'checkForm'])->name('check.form');
+    Route::post('/check', [PaymentController::class, 'check'])->name('check');
     Route::get('/upload/{order}', [PaymentController::class, 'uploadForm'])->name('upload.form');
     Route::post('/upload/{order}/bank', [PaymentController::class, 'changeBankVA'])->name('upload.changeBank');
     Route::post('/upload/{order}', [PaymentController::class, 'uploadProof'])->name('upload.store');
